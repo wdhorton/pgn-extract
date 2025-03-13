@@ -1537,17 +1537,39 @@ print_EPD_move_list(Game *current_game, FILE *outputfile,
         unsigned move_number, Boolean white_to_move,
         Board *initial_board)
 {
+    const char *result = current_game->tags[RESULT_TAG];
+    if (result == NULL) {
+        result = "*";
+    }
+    
+    /* Extract game_id from the Site tag */
+    const char *game_id = "";
+    if (current_game->tags[SITE_TAG] != NULL) {
+        const char *site = current_game->tags[SITE_TAG];
+        /* Find the last slash in the URL */
+        const char *last_slash = strrchr(site, '/');
+        if (last_slash != NULL) {
+            /* Take the part after the last slash */
+            game_id = last_slash + 1;
+        } else {
+            /* If no slash found, use the whole site as the ID */
+            game_id = site;
+        }
+    }
+    
     const char *game_comment = format_epd_game_comment(current_game->tags);
     const Move *move = current_game->moves;
 
     if (initial_board != NULL) {
         char epd[FEN_SPACE];
         build_basic_EPD_string(initial_board, epd);
-        fprintf(outputfile, "%s %s\n", epd, game_comment);
+        fprintf(outputfile, "%s,%s,%s,%s\n", epd, move->move, result, game_id);
     }
     while (move != NULL) {
         if (move->epd != NULL) {
-            fprintf(outputfile, "%s %s\n", move->epd, game_comment);
+            if (move->next != NULL) {
+                fprintf(outputfile, "%s,%s,%s,%s\n", move->epd, move->next->move, result, game_id);
+            }
         }
         else {
             fprintf(GlobalState.logfile, "Internal error: Missing EPD\n");
