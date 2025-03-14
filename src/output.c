@@ -1532,6 +1532,39 @@ print_algebraic_game(Game *current_game, FILE *outputfile,
     }
 }
 
+/*
+ * Count the number of pieces in a chess position represented by an EPD string,
+ * excluding kings and pawns.
+ */
+static int
+count_pieces_excluding_kings_and_pawns(const char *epd)
+{
+    int piece_count = 0;
+    
+    /* Iterate through each character in the EPD string */
+    for (int i = 0; epd[i] != '\0' && epd[i] != ' '; i++) {
+        char c = epd[i];
+        /* If the character is a digit, it represents empty squares */
+        if (isdigit(c)) {
+            continue;
+        }
+        /* If the character is a slash, it separates ranks */
+        else if (c == '/') {
+            continue;
+        }
+        /* Skip kings and pawns */
+        else if (c == 'K' || c == 'k' || c == 'P' || c == 'p') {
+            continue;
+        }
+        /* Otherwise, it's a piece we want to count */
+        else {
+            piece_count++;
+        }
+    }
+    
+    return piece_count;
+}
+
 static void
 print_EPD_move_list(Game *current_game, FILE *outputfile,
         unsigned move_number, Boolean white_to_move,
@@ -1563,12 +1596,14 @@ print_EPD_move_list(Game *current_game, FILE *outputfile,
     if (initial_board != NULL) {
         char epd[FEN_SPACE];
         build_basic_EPD_string(initial_board, epd);
-        fprintf(outputfile, "%s,%s,%s,%s\n", epd, move->move, result, game_id);
+        int piece_count = count_pieces_excluding_kings_and_pawns(epd);
+        fprintf(outputfile, "%s,%s,%s,%s,%d\n", epd, move->move, result, game_id, piece_count);
     }
     while (move != NULL) {
         if (move->epd != NULL) {
             if (move->next != NULL) {
-                fprintf(outputfile, "%s,%s,%s,%s\n", move->epd, move->next->move, result, game_id);
+                int piece_count = count_pieces_excluding_kings_and_pawns(move->epd);
+                fprintf(outputfile, "%s,%s,%s,%s,%d\n", move->epd, move->next->move, result, game_id, piece_count);
             }
         }
         else {
